@@ -6,7 +6,7 @@
 
 ### Make Chirper model and migration file
 
--   Run this in the terminal: `php artisan make:model -mc Chirp`
+-   Run this in the terminal: `php artisan make:model -mrc Chirp`
 
 ### Routing
 
@@ -16,9 +16,9 @@
 ```php
 use App\Http\Controllers\ChirpController;
 
-Route::get('chirps', [ChirpController::class, 'index'])
-    ->middleware(['auth', 'verified'])
-    ->name('chirps');
+Route::resource('chirps', ChirpController::class)
+    ->only(['index', 'store'])
+    ->middleware(['auth', 'verified']);
 ```
 
 <br>
@@ -38,95 +38,110 @@ public function index(): Response
 }
 ```
 
--   Now change it to a proper view
+-   Now change it to render an inertia view
 
 ```php
-use Illuminate\Http\View;
-
+use Inertia\Inertia;
+use Inertia\Response;
 /**
  * Display a listing of the resource.
  */
 public function index(): Response
 {
-  return view('chirps', [
-    //
-  ]);
+    return Inertia::render('Chirps/Index', [
+        //
+    ]);
 }
 ```
 
 <br>
-3. Add chirps view by creating a blade component resources/views/**chirps.blade.php**, add neccessary code and add a yet to be create livewire component:
 
-```php
-<x-app-layout>
-    <div class="max-w-2xl p-4 mx-auto sm:p-6 lg:p-8">
-        <livewire:chirps.create />
-    </div>
-</x-app-layout>
+3. Add chirps index react page by creating a page component resources/js/Pages/Chirps/**Index.jsx**, add neccessary code:
+
+```jsx
+import React from "react";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import InputError from "@/Components/InputError";
+import PrimaryButton from "@/Components/PrimaryButton";
+import { useForm, Head } from "@inertiajs/react";
+
+export default function Index({ auth }) {
+    const { data, setData, post, processing, reset, errors } = useForm({
+        message: "",
+    });
+
+    const submit = (e) => {
+        e.preventDefault();
+        post(route("chirps.store"), { onSuccess: () => reset() });
+    };
+
+    return (
+        <AuthenticatedLayout user={auth.user}>
+            <Head title="Chirps" />
+
+            <div className="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8">
+                <form onSubmit={submit}>
+                    <textarea
+                        value={data.message}
+                        placeholder="What's on your mind?"
+                        className="block w-full border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm"
+                        onChange={(e) => setData("message", e.target.value)}
+                    ></textarea>
+                    <InputError message={errors.message} className="mt-2" />
+                    <PrimaryButton className="mt-4" disabled={processing}>
+                        Chirp
+                    </PrimaryButton>
+                </form>
+            </div>
+        </AuthenticatedLayout>
+    );
+}
 ```
 
 <br>
-4. Create livewire component for writing our chirps
 
--   `php artisan make:volt chirps/create`
--   Open resoureces/views/livewire/chirps/**create.blade.php** file and add this code to the necessary place:
+4. Update the navigation to include a route to the chirps page
 
-```php
-// in the php tag
-state(['message' => '']);
+-   Open resources/js/Layouts/**AuthenticatedLayout.jsx** and add this:
 
-// in the div
-<form wire:submit="store">
-    <textarea
-        wire:model="message"
-        placeholder="{{ __('What\'s on your mind?') }}"
-        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-    ></textarea>
+```jsx
+// Look for the <NavLink></NavLink> component and paste the ff after it:
+<NavLink href={route('chirps.index')} active={route().current('chirps.index')}>
+    Chirps
+</NavLink>
 
-    <x-input-error :messages="$errors->get('message')" class="mt-2" />
-    <x-primary-button class="mt-4">{{ __('Chirp') }}</x-primary-button>
-</form>
-```
-
-<br>
-5. Update the navigation to include a route to the chirps page
-
--   Open resources/views/livewire/layout/**navigation.blade.php** and add this:
-
-```php
-// Look for the <!-- Navigation Links --> comment and paste the ff:
-<x-nav-link :href="route('chirps')" :active="request()->routeIs('chirps')" wire:navigate>
-    {{ __('Chirps') }}
-</x-nav-link>
-
-// look for the <!-- Responsive Navigation Menu --> comment and paste the ff:
-<x-responsive-nav-link :href="route('chirps')" :active="request()->routeIs('chirps')" wire:navigate>
-    {{ __('Chirps') }}
-</x-responsive-nav-link>
+// look for the <ResponsiveNavLink></ResponsiveNavLink> and paste the ff:
+<ResponsiveNavLink href={route('chirps.index')} active={route().current('chirps.index')}>
+    Chirps
+</ResponsiveNavLink>
 ```
 
 ### Saving chirps to db
 
 <br>
-1. Update our livewire component to allow saving the chirp
+1. Update our chirp controller to allow saving the chirp to the chirps.store route
 
--   Open resoureces/views/livewire/chirps/**create.blade.php** file and add this code to the necessary place:
+-   Open App/Http/Controllers/**ChirpController.php** file and add this code to the necessary place:
 
 ```php
-use function Livewire\Volt\{rules, state};
+use Illuminate\Http\RedirectResponse;
 
-rules(['message' => 'required|string|max:255']);
+public function store(Request $request): RedirectResponse
+{
+    //
+    $validated = $request->validate([
+        'message' => 'required|string|max:255',
+    ]);
 
-$store = function () {
-    $validated = $this->validate();
+    $request->user()->chirps()->create($validated);
 
-    auth()->user()->chirps()->create($validated);
-
-    $this->message = '';
-};
+    return redirect(route('chirps.index'));
+}
 ```
 
-NB: TABLE,RELATIONSHIPS oc chirps have not yet been created
+Above code stores the data into the db and redirects back to the index route
+
+NB: TABLE,RELATIONSHIPS of chirps have not yet been created
 
 <br>
 2. Add chirps and user model relationships.
