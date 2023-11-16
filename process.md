@@ -431,28 +431,45 @@ public function update(Request $request, Chirp $chirp): RedirectResponse
 ## Delete Chirps
 
 <br>
-1. Open the ChirpPolicy file and add this to the delete function
+
+1. Edit the web.php file to include the destroy route
+
+```php
+->only(['index', 'store', 'update', 'destroy'])
+```
+
+2. Open the **ChirpPolicy** file and add this to the delete function
 
 ```php
 // anyone authorized to update a chirp will be authorized to delete a chirp by calling the update method here
 return $this->update($user, $chirp);
 ```
 
-2. Create a delete button with delete functionality in the list.blade file
+3. Update the delete function in the chirp controller to allow for deleting a chirp by the author.
 
 ```php
-$delete = function (Chirp $chirp) {
+public function destroy(Chirp $chirp): RedirectResponse
+{
+    //
     $this->authorize('delete', $chirp);
 
     $chirp->delete();
 
-    $this->getChirps();
-};
+    return redirect(route('chirps.index'));
+}
+```
 
-// after the edit dropdown
-<x-dropdown-link wire:click="delete({{ $chirp->id }})" wire:confirm="Are you sure to delete this chirp?">
-    {{ __('Delete') }}
-</x-dropdown-link>
+2. Create a delete button that will route you to the destroy route in the Chirp file
+
+```js
+// after the edit dropdown link
+<Dropdown.Link
+    as="button"
+    href={route("chirps.destroy", chirp.id)}
+    method="delete"
+>
+    Delete
+</Dropdown.Link>
 ```
 
 ## Notifications & Events
