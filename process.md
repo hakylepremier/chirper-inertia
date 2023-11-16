@@ -290,47 +290,110 @@ dayjs.extend(relativeTime);
 
 <!-- volt mount ???? -->
 
-1. Create a livewire edit form component that saves the edited chirp
-
--   Run this to create livewire component: `php artisan make:volt chirps/edit`. Open resources/views/livewire/chirps/**edit.blade.php** and add
+1. To edit we add a route to the web.php file
 
 ```php
-// in php
-use function Livewire\Volt\{mount, rules, state};
+// replace ->only(['index', 'store']) with
+->only(['index', 'store', 'update'])
+```
 
-state(['chirp', 'message']);
+1. Create a react edit form component that allows us to edit the message in the chirp component
 
-rules(['message' => 'required|string|max:255']);
+-   Also adds a dropdown menu with an edit button to chirps that belong to the currently authenticated user. This edit button will change the message into an edit form when pressed
 
-// when form appears assign chirp message to message state
-mount(fn () => $this->message = $this->chirp->message);
+```js
+// replace: import React from 'react'; with
+import React, { useState } from "react";
+import Dropdown from "@/Components/Dropdown";
+import InputError from "@/Components/InputError";
+import PrimaryButton from "@/Components/PrimaryButton";
 
-$update = function () {
-    // this check to see if user is authorised to update chirp
-    // the policy is yet to be made
-    $this->authorize('update', $this->chirp);
+// add
+import { useForm, usePage } from "@inertiajs/react";
 
-    $validated = $this->validate();
+// below this: export default function Chirp({ chirp }) {
+// states and submit functions
+const { auth } = usePage().props;
 
-    $this->chirp->update($validated);
+const [editing, setEditing] = useState(false);
 
-    $this->dispatch('chirp-updated');
+const { data, setData, patch, clearErrors, reset, errors } = useForm({
+    message: chirp.message,
+});
+
+const submit = (e) => {
+    e.preventDefault();
+    patch(route("chirps.update", chirp.id), {
+        onSuccess: () => setEditing(false),
+    });
 };
 
-// this triggers when chirp edit is canceled
-$cancel = fn () => $this->dispatch('chirp-edit-canceled');
+// under this: <small className="ml-2 text-sm text-gray-600">{dayjs(chirp.created_at).fromNow()}</small>
+// compares created at and updated at, if not the same, shows edited
+{
+    chirp.created_at !== chirp.updated_at && (
+        <small className="text-sm text-gray-600"> &middot; edited</small>
+    );
+}
 
-// in html div
-<form wire:submit="update">
-    <textarea
-        wire:model="message"
-        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-    ></textarea>
+// beneath the div with the code above
+// if user is currently the auth user, shows the dropdown
+{
+    chirp.user.id === auth.user.id && (
+        <Dropdown>
+            <Dropdown.Trigger>
+                <button>
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4 text-gray-400"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                    >
+                        <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
+                    </svg>
+                </button>
+            </Dropdown.Trigger>
+            <Dropdown.Content>
+                <button
+                    className="block w-full px-4 py-2 text-left text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:bg-gray-100 transition duration-150 ease-in-out"
+                    onClick={() => setEditing(true)}
+                >
+                    Edit
+                </button>
+            </Dropdown.Content>
+        </Dropdown>
+    );
+}
 
-    <x-input-error :messages="$errors->get('message')" class="mt-2" />
-    <x-primary-button class="mt-4">{{ __('Save') }}</x-primary-button>
-    <button class="mt-4" wire:click.prevent="cancel">Cancel</button>
-</form>
+// it will replace: <p className="mt-4 text-lg text-gray-900">{chirp.message}</p>
+// this is the edit form
+{
+    editing ? (
+        <form onSubmit={submit}>
+            <textarea
+                value={data.message}
+                onChange={(e) => setData("message", e.target.value)}
+                className="mt-4 w-full text-gray-900 border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm"
+            ></textarea>
+            <InputError message={errors.message} className="mt-2" />
+            <div className="space-x-2">
+                <PrimaryButton className="mt-4">Save</PrimaryButton>
+                <button
+                    className="mt-4"
+                    onClick={() => {
+                        setEditing(false);
+                        reset();
+                        clearErrors();
+                    }}
+                >
+                    Cancel
+                </button>
+            </div>
+        </form>
+    ) : (
+        <p className="mt-4 text-lg text-gray-900">{chirp.message}</p>
+    );
+}
 ```
 
 2. Create a policy to only allow authorized users to update their own chirps
@@ -340,78 +403,29 @@ $cancel = fn () => $this->dispatch('chirp-edit-canceled');
 -   Open the app/**ChirpPolicy.php** file and update the update function:
 
 ```php
+// in the update function
 return $chirp->user()->is($user);
+
+// in the other functions
+return $user->is(auth()->user());
 ```
 
 <br>
-3. Add dropdown menu with an edit button to chirps that belong to the currently authenticated. This edit button will change the message into the llivewire edit form when pressed
+3. Update the update function in our ChirpController to actually update the chirp
 
 ```php
-// in php tag
-// update state with
-state(['chirps' => $getChirps, 'editing' => null]);
+public function update(Request $request, Chirp $chirp): RedirectResponse
+{
+    $this->authorize('update', $chirp);
 
-// add edit function
-$edit = function (Chirp $chirp) {
-$this->editing = $chirp;
+    $validated = $request->validate([
+        'message' => 'required|string|max:255',
+    ]);
 
-    $this->getChirps();
+    $chirp->update($validated);
 
-};
-
-// in html
-// this is below: <small class="ml-2 text-sm text-gray-600">{{ $chirp->created_at->format('j M Y, g:i a') }}</small>
-// This shows on chirps that have been edited
-@unless ($chirp->created_at->eq($chirp->updated_at))
-<small class="text-sm text-gray-600"> &middot; {{ __('edited') }}</small>
-@endunless
-
-// after div with unless code
-// shows dropdown menu on chirps created by currently authenticated user
-@if ($chirp->user->is(auth()->user()))
-<x-dropdown>
-<x-slot name="trigger">
-<button>
-<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-<path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
-</svg>
-</button>
-</x-slot>
-<x-slot name="content">
-<x-dropdown-link wire:click="edit({{ $chirp->id }})">
-{{ __('Edit') }}
-</x-dropdown-link>
-</x-slot>
-</x-dropdown>
-@endif
-
-// replaces: <p class="mt-4 text-lg text-gray-900">{{ $chirp->message }}</p>
-// when edit button pressed, replace message with edit form
-@if ($chirp->is($editing))
-<livewire:chirps.edit :chirp="$chirp" :key="$chirp->id" />
-@else
-
-<p class="mt-4 text-lg text-gray-900">{{ $chirp->message }}</p>
-@endif
-
-```
-
-<br>
-3. Update the list component to react when a chirp get updated or an update is canceled by the user:
-
-```php
-$disableEditing = function () {
-    $this->editing = null;
-
-    return $this->getChirps();
-};
-
-// this replaces: on(['chirp-created' => $getChirps]);
-on([
-    'chirp-created' => $getChirps,
-    'chirp-updated' => $disableEditing,
-    'chirp-edit-canceled' => $disableEditing,
-]);
+    return redirect(route('chirps.index'));
+}
 ```
 
 ## Delete Chirps
