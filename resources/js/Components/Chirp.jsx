@@ -111,7 +111,7 @@ export default function Chirp({ chirp }) {
                         </div>
                     </form>
                 ) : (
-                    <p className="mt-4 text-lg text-red-500 ">
+                    <p className="mt-4 text-lg text-[#DDF2FD]">
                         {chirp.message}
                     </p>
                 )}
