@@ -1,5 +1,23 @@
 # Process for building Chirper
 
+## Table of contents
+
+-   [Create Project and download breeze](#create-project-and-download-breeze)
+-   [Creating Chirps](#creating-chirps)
+    -   [Make Chirper model and migration file](#make-chirper-model-and-migration-file)
+    -   [Routing](#routing)
+    -   [Saving chirps to db](#saving-chirps-to-db)
+-   [Viewing Chirps](#viewing-chirps)
+    -   [Retrieving Chirps](#retrieving-chirps)
+-   [Editing Chirps](#editing-chirps)
+-   [Delete Chirps](#delete-chirps)
+-   [Notifications and Events](#notifications-and-events)
+    -   [Creating the notification](#creating-the-notification)
+    -   [Creating events](#creating-events)
+    -   [Dispatching Event](#dispatching-event)
+    -   [Creating Event Listeners](#creating-event-listeners)
+    -   [Register event listener](#register-event-listener)
+
 ## Create Project and download breeze
 
 ## Creating Chirps
@@ -200,8 +218,7 @@ protected $fillable = [
 <br>
 1. Update the ChirpController to send all the chirps in the database with their author names and id when the index route is visited.
 
--   Type this in the terminal: `php artisan make:volt chirps/list`
--   A file will be made called resources/views/livewire/chirps/**list.blade.php**. Open it and add this:
+-   Open the ChirpController and type this in the index function
 
 ```php
 // We'll be adding this in the index function inside this: return Inertia::render('Chirps/Index', [
@@ -215,7 +232,7 @@ import React from "react";
 
 export default function Chirp({ chirp }) {
     return (
-        <div className="p-6 flex space-x-2">
+        <div className="p-6 flex space-x-2 text-white dark:border-gray-700">
             <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-6 w-6 text-gray-600 -scale-x-100"
@@ -233,13 +250,13 @@ export default function Chirp({ chirp }) {
             <div className="flex-1">
                 <div className="flex justify-between items-center">
                     <div>
-                        <span className="text-gray-800">{chirp.user.name}</span>
+                        <span className="text-gray-400">{chirp.user.name}</span>
                         <small className="ml-2 text-sm text-gray-600">
                             {new Date(chirp.created_at).toLocaleString()}
                         </small>
                     </div>
                 </div>
-                <p className="mt-4 text-lg text-gray-900">{chirp.message}</p>
+                <p className="mt-4 text-lg text-white">{chirp.message}</p>
             </div>
         </div>
     );
@@ -258,7 +275,7 @@ import Chirp from "@/Components/Chirp";
 export default function Index({ auth, chirps }) {
 
 // paste this under the form
-<div className="mt-6 bg-white shadow-sm rounded-lg divide-y">
+<div className="mt-6 dark:bg-gray-800 shadow-sm rounded-lg divide-y">
     {chirps.map(chirp =>
         <Chirp key={chirp.id} chirp={chirp} />
     )}
@@ -281,7 +298,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 dayjs.extend(relativeTime);
 
 // replace <small className="ml-2 text-sm text-gray-600">{new Date(chirp.created_at).toLocaleString()}</small> with
-<small className="ml-2 text-sm text-gray-600">
+<small className="ml-2 text-sm text-gray-500">
     {dayjs(chirp.created_at).fromNow()}
 </small>;
 ```
@@ -297,7 +314,7 @@ dayjs.extend(relativeTime);
 ->only(['index', 'store', 'update'])
 ```
 
-1. Create a react edit form component that allows us to edit the message in the chirp component
+2. Create a react edit form component that allows us to edit the message in the chirp component
 
 -   Also adds a dropdown menu with an edit button to chirps that belong to the currently authenticated user. This edit button will change the message into an edit form when pressed
 
@@ -396,7 +413,7 @@ const submit = (e) => {
 }
 ```
 
-2. Create a policy to only allow authorized users to update their own chirps
+3. Create a policy to only allow authorized users to update their own chirps
 
 -   Create policy with `php artisan make:policy ChirpPolicy --model=Chirp`
 
@@ -411,7 +428,7 @@ return $user->is(auth()->user());
 ```
 
 <br>
-3. Update the update function in our ChirpController to actually update the chirp
+4. Update the update function in our ChirpController to actually update the chirp
 
 ```php
 public function update(Request $request, Chirp $chirp): RedirectResponse
@@ -459,7 +476,7 @@ public function destroy(Chirp $chirp): RedirectResponse
 }
 ```
 
-2. Create a delete button that will route you to the destroy route in the Chirp file
+4. Create a delete button that will route you to the destroy route in the Chirp file
 
 ```js
 // after the edit dropdown link
@@ -472,7 +489,7 @@ public function destroy(Chirp $chirp): RedirectResponse
 </Dropdown.Link>
 ```
 
-## Notifications & Events
+## Notifications and Events
 
 ### Creating the notification
 
@@ -515,7 +532,7 @@ protected $dispatchesEvents = [
 ];
 ```
 
-### Creating Evenmt Listeners
+### Creating Event Listeners
 
 We'll make an event listener to listen to the Chirp created event with this `php artisan make:listener SendChirpCreatedNotifications --event=ChirpCreated` and we'll add this code to this file app/Listeners/**SendChirpCreatedNotifications.php**:
 
