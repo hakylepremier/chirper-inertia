@@ -32,7 +32,9 @@ export default function Index({ auth, chirps }) {
                         Chirp
                     </PrimaryButton>
                 </form>
-                <div className="mt-6 shadow-sm rounded-lg divide-y dark:bg-gray-800">
+                <div className="mt-6 shadow-sm rounded-lg divide-y bg-[#164863]">
+                    {" "}
+                    {/* //dark:bg-gray-800 */}
                     {chirps.map((chirp) => (
                         <Chirp key={chirp.id} chirp={chirp} />
                     ))}

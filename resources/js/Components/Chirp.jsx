@@ -25,11 +25,11 @@ export default function Chirp({ chirp }) {
     };
     return (
         // border-color: rgb(57 64 86 / var(--tw-border-opacity));
-        //     background: #252A37;
-        <div className="p-6 flex space-x-2 text-white dark:border-gray-700">
+        //     background: #252A37; dark:border-gray-700
+        <div className="p-6 flex space-x-2 text-white dark:border-[#427D9D]">
             <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 text-gray-600 -scale-x-100"
+                className="h-6 w-6 text-[#9BBEC8] -scale-x-100"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -44,14 +44,15 @@ export default function Chirp({ chirp }) {
             <div className="flex-1">
                 <div className="flex justify-between items-center">
                     <div>
-                        <span className="text-gray-400">{chirp.user.name}</span>
-                        <small className="ml-2 text-sm text-gray-500 ">
+                        <span className="text-[#9BBEC8]">
+                            {chirp.user.name}
+                        </span>
+                        <small className="ml-2 text-sm text-[#427D9D] ">
                             {dayjs(chirp.created_at).fromNow()}
                         </small>
                         {chirp.created_at !== chirp.updated_at && (
-                            <small className="text-sm text-gray-500">
-                                {" "}
-                                &middot; edited
+                            <small className="text-sm  text-[#427D9D]">
+                                {/* text-gray-500 */} &middot; edited
                             </small>
                         )}
                     </div>
@@ -61,7 +62,7 @@ export default function Chirp({ chirp }) {
                                 <button>
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
-                                        className="h-4 w-4 text-gray-400"
+                                        className="h-4 w-4 text-[#9BBEC8]"
                                         viewBox="0 0 20 20"
                                         fill="currentColor"
                                     >
@@ -110,7 +111,9 @@ export default function Chirp({ chirp }) {
                         </div>
                     </form>
                 ) : (
-                    <p className="mt-4 text-lg text-white">{chirp.message}</p>
+                    <p className="mt-4 text-lg text-[#DDF2FD]">
+                        {chirp.message}
+                    </p>
                 )}
             </div>
         </div>
